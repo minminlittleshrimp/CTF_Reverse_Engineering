@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/lum3hc/work/ctf/dlt-daemon_folk_demo/hello_dlt/hello_dlt.cpp
+stdio.h
+-
+stdlib.h
+-
+unistd.h
+-
+pthread.h
+-
+dlt/dlt.h
+-
+

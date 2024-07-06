@@ -1,0 +1,56 @@
+diff --git a/include/dlt/dlt_user.h.in b/include/dlt/dlt_user.h.in
+index ae9c37c..e068ff9 100644
+--- a/include/dlt/dlt_user.h.in
++++ b/include/dlt/dlt_user.h.in
+@@ -110,11 +110,13 @@ extern "C" {
+ #   define DLT_USER_RESENDBUF_MAX_SIZE (DLT_USER_BUF_MAX_SIZE + 100)    /**< Size of resend buffer; Max DLT message size is 1390 bytes plus some extra header space  */
+ 
+ /* Use a semaphore or mutex from your OS to prevent concurrent access to the DLT buffer. */
+-#define DLT_SEM_LOCK() do{\
+-    while ((sem_wait(&dlt_mutex) == -1) && (errno == EINTR)) \
+-        continue;       /* Restart if interrupted */ \
++#define DLT_SEM_LOCK() do{ \
++        pthread_mutex_lock(&dlt_mutex); \
++    } while(false)
++
++#define DLT_SEM_FREE() do{ \
++        pthread_mutex_unlock(&dlt_mutex); \
+     } while(false)
+-#define DLT_SEM_FREE() { sem_post(&dlt_mutex); }
+ 
+ /**
+  * This structure is used for every context used in an application.
+diff --git a/src/lib/dlt_user.c b/src/lib/dlt_user.c
+index c6eaf0c..7d5af11 100644
+--- a/src/lib/dlt_user.c
++++ b/src/lib/dlt_user.c
+@@ -108,7 +108,8 @@ static char dlt_user_dir[DLT_PATH_MAX];
+ static char dlt_daemon_fifo[DLT_PATH_MAX];
+ #endif
+ 
+-static sem_t dlt_mutex;
++static pthread_mutex_t dlt_mutex;
++static pthread_mutexattr_t dlt_mutex_attr;
+ static pthread_t dlt_housekeeperthread_handle;
+ 
+ /* Sync housekeeper thread start */
+@@ -719,7 +720,9 @@ DltReturnValue dlt_init_common(void)
+     uint32_t header_size = 0;
+ 
+     /* Binary semaphore for threads */
+-    if (sem_init(&dlt_mutex, 0, 1) == -1) {
++    if ((pthread_attr_init(&dlt_mutex_attr) != 0) ||
++        (pthread_mutexattr_settype(&dlt_mutex_attr, PTHREAD_MUTEX_ERRORCHECK) != 0) ||
++        (pthread_mutex_init(&dlt_mutex, &dlt_mutex_attr) != 0)) {
+         dlt_user_init_state = INIT_UNITIALIZED;
+         return DLT_RETURN_ERROR;
+     }
+@@ -1184,7 +1187,7 @@ DltReturnValue dlt_free(void)
+ 
+     pthread_cond_destroy(&mq_init_condition);
+ #endif /* DLT_NETWORK_TRACE_ENABLE */
+-    sem_destroy(&dlt_mutex);
++    pthread_mutex_destroy(&dlt_mutex);
+ 
+     /* allow the user app to do dlt_init() again. */
+     /* The flag is unset only to keep almost the same behaviour as before, on EntryNav */

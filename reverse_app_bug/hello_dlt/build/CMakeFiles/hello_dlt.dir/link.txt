@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -O0   CMakeFiles/hello_dlt.dir/hello_dlt.cpp.o  -o hello_dlt  -ldlt -lrt -lpthread 
